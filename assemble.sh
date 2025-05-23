@@ -10,6 +10,10 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# Resolve location of this script so we can run it from anywhere
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 # Load environment and bootstrap tools
 # shellcheck disable=SC1091
 [ -f config/env.sh ] && source config/env.sh
