@@ -50,6 +50,14 @@ for LAYER in core extensions; do
     export NAME URL BRANCH CONFIGURE_FLAGS
     export INSTALL_PREFIX="/usr/local/$NAME"
 
+    # Load optional env block if present
+    ENV_KEYS=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].env | keys | .[]" bom.yaml 2>/dev/null || true)
+    for KEY in $ENV_KEYS; do
+      VALUE=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].env.$KEY" bom.yaml)
+      export "$KEY"="$VALUE"
+      echo "[assemble]     ENV: $KEY=$VALUE"
+    done
+
     for STEP in $STEPS; do
       SCRIPT="stations/${STEP}-${NAME}.sh"
       FALLBACK="stations/${STEP}.sh"

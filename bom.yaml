@@ -41,9 +41,11 @@ products:
             --with-cloudberry-core=/usr/local/cloudberry
           steps: [clone, configure, build, install, test]
 
-        - name: hashdata-anon
+        - name: anon
           url: git@github.com:Synx-Data-Labs/hashdata-anon.git
           branch: upstream
           configure_flags: |
             --with-cloudberry-core=/usr/local/cloudberry
-          steps: [clone]
+          steps: [clone, postgres-extension]
+          env:
+            DISABLE_EXTENSION_TESTS: false
