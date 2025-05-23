@@ -20,6 +20,9 @@ cd "$SCRIPT_DIR"
 # shellcheck disable=SC1091
 [ -f config/bootstrap.sh ] && source config/bootstrap.sh
 
+# Optional component name filter
+ONLY_COMPONENT="${1:-}"
+
 # Require yq
 if ! command -v yq >/dev/null 2>&1; then
   echo "[assemble] ERROR: 'yq' is required but not installed."
@@ -30,7 +33,7 @@ fi
 PRODUCT=$(yq e '.products | keys | .[0]' bom.yaml)
 echo "[assemble] Building product: $PRODUCT"
 
-for LAYER in core extensions; do
+for LAYER in core extensions dependency; do
   COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml)
 
   if [[ "$COUNT" -eq 0 ]]; then
@@ -41,6 +44,12 @@ for LAYER in core extensions; do
 
   for ((i = 0; i < COUNT; i++)); do
     NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" bom.yaml)
+
+    # Skip if filtering by component name
+    if [[ -n "$ONLY_COMPONENT" && "$NAME" != "$ONLY_COMPONENT" ]]; then
+      continue
+    fi
+
     URL=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].url" bom.yaml)
     BRANCH=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].branch" bom.yaml)
     CONFIGURE_FLAGS=$(yq e -o=props ".products.${PRODUCT}.components.${LAYER}[$i].configure_flags" bom.yaml)
