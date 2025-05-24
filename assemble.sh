@@ -67,8 +67,8 @@ while true; do
     -h|--help)
       echo "Usage: $0 [--run] [--list] [-c <name>] [-s <steps>]"
       echo ""
-      echo "  --run                Run BOM steps (must be explicitly provided)"
-      echo "  --list               List all components by layer"
+      echo "  -r, --run            Run BOM steps (must be explicitly provided)"
+      echo "  -l, --list           List all components by layer"
       echo "  -c, --component      Target a specific component (optional)"
       echo "  -s, --steps          Override steps (comma-separated)"
       echo "  -h, --help           Show this help message"
