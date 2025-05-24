@@ -55,9 +55,9 @@ products:
           url: git@github.com:Synx-Data-Labs/hashdata-arrow.git
           branch: upstream
           configure_flags: |
-            -DCMAKE_INSTALL_PREFIX=$HOME/asembly-bom/stage/apache-arrow
-            -DCMAKE_PREFIX_PATH=$PWD/xsimd_ep/src/xsimd_ep-install
-            -DCMAKE_CXX_FLAGS="-I$PWD/xsimd_ep/src/xsimd_ep-install/include"
+            -DCMAKE_INSTALL_PREFIX="$HOME/asembly-bom/stage/apache-arrow"
+            -DCMAKE_PREFIX_PATH="$PWD/xsimd_ep/src/xsimd_ep-install;$PWD/rapidjson_ep/src/rapidjson_ep-install"
+            -DCMAKE_CXX_FLAGS="-I$PWD/xsimd_ep/src/xsimd_ep-install/include -I$PWD/rapidjson_ep/src/rapidjson_ep-install/include"
             -DARROW_DEPENDENCY_SOURCE=AUTO
             -DARROW_COMPUTE=ON
             -DARROW_FILESYSTEM=ON
@@ -67,4 +67,4 @@ products:
             -DARROW_BUILD_STATIC=OFF
             -DARROW_WITH_OPENTELEMETRY=OFF
             -DARROW_BUILD_TESTS=ON
-          steps: [clone, configure, build, install, test]
+          steps: [test]

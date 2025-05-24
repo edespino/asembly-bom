@@ -3,7 +3,7 @@
 # File     : stations/configure-apache-arrow.sh
 # Purpose  : Configure script for the Apache Arrow component using CMake.
 # Inputs   :
-#   - CONFIGURE_FLAGS: CMake flags passed from bom.yaml (optional)
+#   - CONFIGURE_FLAGS: CMake flags passed from bom.yaml (mandatory)
 #   - INSTALL_PREFIX: override default install path
 # --------------------------------------------------------------------
 
@@ -32,25 +32,14 @@ cd "$BUILD_DIR"
 section "configure"
 start_time=$(date +%s)
 
-# Default flags if none provided
-DEFAULT_FLAGS=$(cat <<EOF
--DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
--DCMAKE_PREFIX_PATH="$BUILD_DIR/xsimd_ep/src/xsimd_ep-install"
--DCMAKE_CXX_FLAGS="-I$BUILD_DIR/xsimd_ep/src/xsimd_ep-install/include"
--DARROW_DEPENDENCY_SOURCE=AUTO
--DARROW_COMPUTE=ON
--DARROW_FILESYSTEM=ON
--DARROW_CSV=ON
--DARROW_IPC=ON
--DARROW_BUILD_SHARED=ON
--DARROW_BUILD_STATIC=OFF
--DARROW_WITH_OPENTELEMETRY=OFF
--DARROW_BUILD_TESTS=ON
-EOF
-)
+# Require CONFIGURE_FLAGS
+if [[ -z "${CONFIGURE_FLAGS:-}" ]]; then
+  echo "❌ Error: CONFIGURE_FLAGS must be provided externally (e.g., via bom.yaml)." >&2
+  exit 1
+fi
 
 # Final CMake command
-CMAKE_CMD="cmake .. ${CONFIGURE_FLAGS:-$DEFAULT_FLAGS}"
+CMAKE_CMD="cmake .. $CONFIGURE_FLAGS"
 
 log "Running cmake with:"
 echo "  $CMAKE_CMD"

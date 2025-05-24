@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/install.sh
-# Purpose  : Default install script for components using `make install`.
+# File     : stations/make-apache-arrow.sh
+# Purpose  : Install Apache Arrow from its CMake build directory.
 # Inputs   :
-#   - NAME : component name (required)
+#   - NAME : optional override (default: apache-arrow)
 # --------------------------------------------------------------------
 
 set -euo pipefail
@@ -13,11 +13,9 @@ IFS=$'\n\t'
 # shellcheck disable=SC1091
 [ -f config/env.sh ] && . config/env.sh
 
-# Required input
-NAME="${NAME:?Component name (NAME) must be provided}"
-BUILD_DIR="parts/$NAME"
+NAME="${NAME:-apache-arrow}"
+BUILD_DIR="parts/$NAME/cpp/build"
 
-# Logging helpers
 section()         { echo "==> $1..."; }
 section_complete(){ echo "✅ $1 complete (duration: $(($(date +%s) - $2))s)"; }
 log()             { printf "[%s] %s\n" "$(date '+%H:%M:%S')" "$*"; }
@@ -34,10 +32,9 @@ fi
 cd "$BUILD_DIR"
 
 log "Component:       $NAME"
-log "Build directory: $BUILD_DIR"
+log "Install from:    $BUILD_DIR"
 echo ""
 
-# Perform install
 install_cmd=(make -j"$(nproc)" install)
 log "Running install command:"
 printf '  %s\n' "${install_cmd[@]}"
