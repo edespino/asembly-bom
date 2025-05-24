@@ -2,10 +2,6 @@
 # --------------------------------------------------------------------
 # File     : assemble.sh
 # Purpose  : Safe, explicit orchestrator for Assembly BOM
-# Features :
-#   - Requires --run to execute build steps
-#   - Use --list to inspect components
-#   - Combine with --component/-c and --steps/-s
 # --------------------------------------------------------------------
 
 set -euo pipefail
@@ -13,6 +9,11 @@ IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+
+LOG_DIR="$SCRIPT_DIR/logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/assemble-$(date '+%Y%m%d-%H%M%S').log"
+exec > >(tee -a "$LOG_FILE") 2>&1
 
 # Load environment and bootstrap tools
 # shellcheck disable=SC1091
@@ -26,12 +27,27 @@ if ! command -v yq >/dev/null 2>&1; then
   exit 1
 fi
 
-# --- If no arguments, behave as --help ---
+# Format duration in days, hours, minutes, and seconds
+format_duration() {
+  local total_seconds=$1
+  local days=$((total_seconds / 86400))
+  local hours=$(( (total_seconds % 86400) / 3600 ))
+  local minutes=$(( (total_seconds % 3600) / 60 ))
+  local seconds=$((total_seconds % 60))
+
+  local result=""
+  if (( days > 0 )); then result+="${days}d "; fi
+  if (( hours > 0 || days > 0 )); then result+="${hours}h "; fi
+  if (( minutes > 0 || hours > 0 || days > 0 )); then result+="${minutes}m "; fi
+  result+="${seconds}s"
+
+  echo "$result"
+}
+
 if [[ "$#" -eq 0 ]]; then
   set -- --help
 fi
 
-# --- CLI Parsing ---
 OPTIONS=c:s:hlr
 LONGOPTS=component:,steps:,help,list,run
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
@@ -65,7 +81,6 @@ done
 
 PRODUCT=$(yq e '.products | keys | .[0]' bom.yaml)
 
-# --- List Components ---
 if [[ "$DO_LIST" == true ]]; then
   echo "[assemble] Components in bom.yaml:"
   for LAYER in core extensions dependency; do
@@ -81,15 +96,15 @@ if [[ "$DO_LIST" == true ]]; then
   exit 0
 fi
 
-# --- Require --run ---
 if [[ "$DO_RUN" != true ]]; then
   echo "[assemble] No action taken. Use --run to execute, or --list to inspect."
   echo "Try: $0 --run --component cloudberry --steps build,test"
   exit 0
 fi
 
-# --- Run BOM Workflow ---
 echo "[assemble] Building product: $PRODUCT"
+START_TIME=$(date +%s)
+SUMMARY_LINES=()
 
 for LAYER in core extensions dependency; do
   COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
@@ -123,27 +138,46 @@ for LAYER in core extensions dependency; do
       echo "[assemble]     ENV: $KEY=$VALUE"
     done
 
+    STEP_TIMINGS=()
+    COMPONENT_START=$(date +%s)
+
     for STEP in "${STEPS[@]}"; do
       SCRIPT="stations/${STEP}-${NAME}.sh"
       FALLBACK="stations/${STEP}.sh"
       echo "[assemble] --> Step: $STEP"
+      STEP_START=$(date +%s)
 
       if [[ -x "$SCRIPT" ]]; then
-        echo "[assemble]     Using component-specific script: $SCRIPT"
-        "$SCRIPT" "$NAME" "$URL" "$BRANCH"
+        bash "$SCRIPT" "$NAME" "$URL" "$BRANCH"
       elif [[ -x "$FALLBACK" ]]; then
-        echo "[assemble]     Using shared script: $FALLBACK"
         if [[ "$STEP" == "clone" ]]; then
-          "$FALLBACK" "$NAME" "$URL" "$BRANCH"
+          bash "$FALLBACK" "$NAME" "$URL" "$BRANCH"
         else
-          "$FALLBACK"
+          bash "$FALLBACK"
         fi
       else
-        echo "[assemble]     ❌ No script found for step '$STEP'"
+        echo "[assemble] ❌ No script found for step '$STEP'"
         exit 1
       fi
+
+      STEP_DURATION=$(( $(date +%s) - STEP_START ))
+      echo "[assemble] ✅ Step completed in $(format_duration "$STEP_DURATION")"
+      STEP_TIMINGS+=("    • $STEP  →  $(format_duration "$STEP_DURATION")")
     done
+
+    COMPONENT_DURATION=$(( $(date +%s) - COMPONENT_START ))
+    SUMMARY_LINES+=("")
+    SUMMARY_LINES+=("[✓] $NAME  —  $(format_duration "$COMPONENT_DURATION")")
+    SUMMARY_LINES+=("${STEP_TIMINGS[@]}")
   done
+
 done
 
-echo "✅ Assembly complete."
+echo ""
+echo "📋 Component Summary:"
+printf '%s\n' "${SUMMARY_LINES[@]}"
+echo ""
+TOTAL_DURATION=$(( $(date +%s) - START_TIME ))
+echo "✅ Assembly complete in $(format_duration "$TOTAL_DURATION")"
+echo "📝 Full log: $LOG_FILE"
+exit 0

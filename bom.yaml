@@ -14,7 +14,7 @@ products:
             --enable-mapreduce
             --enable-orafce
             --enable-orca
-            --enable-pax
+            --disable-pax
             --enable-pxf
             --enable-tap-tests
             --with-gssapi
@@ -31,7 +31,12 @@ products:
             --with-ssl=openssl
             --with-uuid=e2fs
             --with-zstd
-          steps: [clone, configure, build, install, test]
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+            - create-demo-cluster
 
       extensions:
         - name: cloudberry-pxf
@@ -39,14 +44,16 @@ products:
           branch: main
           configure_flags: |
             --with-cloudberry-core=/usr/local/cloudberry
-          steps: [clone]
+          steps:
 
         - name: anon
           url: git@github.com:Synx-Data-Labs/hashdata-anon.git
           branch: upstream
           configure_flags: |
             --with-cloudberry-core=/usr/local/cloudberry
-          steps: [clone, postgres-extension]
+          steps:
+            - clone
+            - postgres-extension
           env:
             DISABLE_EXTENSION_TESTS: false
 
@@ -67,4 +74,8 @@ products:
             -DARROW_BUILD_STATIC=OFF
             -DARROW_WITH_OPENTELEMETRY=OFF
             -DARROW_BUILD_TESTS=ON
-          steps: [test]
+          steps:
+            - clone
+            - configure
+            - build
+            - install

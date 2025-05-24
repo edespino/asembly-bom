@@ -45,8 +45,9 @@ else
 fi
 
 log "Building and installing extension: $NAME"
-make
-make install
+
+make 2>&1 | tee "make-${NAME}-build-$(date '+%Y%m%d-%H%M%S').log"
+make install 2>&1 | tee "make-${NAME}-install-$(date '+%Y%m%d-%H%M%S').log"
 
 # Check for available extension version (requires cloudberry demo env)
 if [[ -f "$CLOUDBERRY_DEMO_ENV" ]]; then

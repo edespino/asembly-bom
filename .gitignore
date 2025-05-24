@@ -3,3 +3,6 @@ parts/
 
 # Ignore stage directories
 stage/
+
+# Ignore logs directories
+logs/
