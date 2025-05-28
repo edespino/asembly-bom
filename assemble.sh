@@ -121,6 +121,9 @@ echo "[assemble] Building product: $PRODUCT"
 START_TIME=$(date +%s)
 SUMMARY_LINES=()
 
+# Ensure we can write to /usr/local
+sudo chmod a+w /usr/local
+
 for LAYER in dependencies core extensions components; do
   COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
   if [[ "$COUNT" -eq 0 ]]; then continue; fi
