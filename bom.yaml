@@ -101,14 +101,13 @@ products:
             - clone
             - postgres-extension
 
-        - name: pgpool
-          url: git@github.com:Synx-Data-Labs/hashdata-pg-pool.git
-          branch: main
-          configure_flags: []
+        - name: vectorization
+          url: git@github.com:Synx-Data-Labs/hashdata-vectorization.git
+          branch: upstream
+          configure_flags: |
+            --with-cloudberry-core=/usr/local/cloudberry
           steps:
             - clone
-            - configure
-            - build-install
 
       components:
         - name: pg_filedump
@@ -119,6 +118,15 @@ products:
             - clone
             - build-install
             - test
+
+        - name: pgpool
+          url: git@github.com:Synx-Data-Labs/hashdata-pg-pool.git
+          branch: main
+          configure_flags: []
+          steps:
+            - clone
+            - configure
+            - build-install
 
       dependencies:
         - name: apache-arrow
@@ -142,3 +150,9 @@ products:
             - configure
             - build
             - install
+
+        - name: apache-orc
+          url: git@github.com:Synx-Data-Labs/hashdata-orc.git
+          branch: upstream
+          steps:
+            - clone

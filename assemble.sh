@@ -8,6 +8,17 @@ set -euo pipefail
 IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load shared functions
+COMMON_SH="${SCRIPT_DIR}/lib/common.sh"
+if [ -f "${COMMON_SH}" ]; then
+    # shellcheck disable=SC1090
+    source "${COMMON_SH}"
+else
+    echo "[assemble.sh] Missing library: ${COMMON_SH}" >&2
+    exit 1
+fi
+
 cd "$SCRIPT_DIR"
 
 LOG_DIR="$SCRIPT_DIR/logs"
@@ -21,22 +32,15 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 # shellcheck disable=SC1091
 [ -f config/bootstrap.sh ] && source config/bootstrap.sh
 
-# Format duration in days, hours, minutes, and seconds
-format_duration() {
-  local total_seconds=$1
-  local days=$((total_seconds / 86400))
-  local hours=$(( (total_seconds % 86400) / 3600 ))
-  local minutes=$(( (total_seconds % 3600) / 60 ))
-  local seconds=$((total_seconds % 60))
-
-  local result=""
-  if (( days > 0 )); then result+="${days}d "; fi
-  if (( hours > 0 || days > 0 )); then result+="${hours}h "; fi
-  if (( minutes > 0 || hours > 0 || days > 0 )); then result+="${minutes}m "; fi
-  result+="${seconds}s"
-
-  echo "$result"
-}
+# Validate bom.yaml existence and syntax
+if [[ ! -f bom.yaml ]]; then
+  echo "[assemble] Error: bom.yaml not found!"
+  exit 1
+fi
+if ! yq e '.' bom.yaml >/dev/null 2>&1; then
+  echo "[assemble] Error: bom.yaml is not valid YAML."
+  exit 1
+fi
 
 if [[ "$#" -eq 0 ]]; then
   set -- --help
