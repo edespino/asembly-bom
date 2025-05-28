@@ -21,12 +21,6 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 # shellcheck disable=SC1091
 [ -f config/bootstrap.sh ] && source config/bootstrap.sh
 
-# Require yq
-if ! command -v yq >/dev/null 2>&1; then
-  echo "[assemble] ERROR: 'yq' is required but not installed."
-  exit 1
-fi
-
 # Format duration in days, hours, minutes, and seconds
 format_duration() {
   local total_seconds=$1
@@ -48,8 +42,8 @@ if [[ "$#" -eq 0 ]]; then
   set -- --help
 fi
 
-OPTIONS=c:s:hlr
-LONGOPTS=component:,steps:,help,list,run
+OPTIONS=c:s:hlrd
+LONGOPTS=component:,steps:,help,list,run,dry-run
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
 
@@ -57,6 +51,7 @@ ONLY_COMPONENTS=()
 STEP_OVERRIDE=""
 DO_LIST=false
 DO_RUN=false
+DO_DRY_RUN=false
 
 while true; do
   case "$1" in
@@ -67,13 +62,15 @@ while true; do
     -s|--steps) STEP_OVERRIDE="$2"; shift 2 ;;
     -l|--list) DO_LIST=true; shift ;;
     -r|--run) DO_RUN=true; shift ;;
+    -d|--dry-run) DO_DRY_RUN=true; shift ;;
     -h|--help)
-      echo "Usage: $0 [--run] [--list] [-c <names>] [-s <steps>]"
+      echo "Usage: $0 [--run] [--list] [--dry-run] [-c <names>] [-s <steps>]"
       echo ""
       echo "  -r, --run            Run BOM steps (must be explicitly provided)"
       echo "  -l, --list           List all components by layer"
       echo "  -c, --component      Target one or more components by name (comma-separated)"
       echo "  -s, --steps          Override steps (comma-separated)"
+      echo "  -d, --dry-run        Show build order only"
       echo "  -h, --help           Show this help message"
       exit 0
       ;;
@@ -86,7 +83,22 @@ PRODUCT=$(yq e '.products | keys | .[0]' bom.yaml)
 
 if [[ "$DO_LIST" == true ]]; then
   echo "[assemble] Components in bom.yaml:"
-  for LAYER in core extensions dependency; do
+  for LAYER in dependencies core extensions components; do
+    COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
+    if [[ "$COUNT" -eq 0 ]]; then continue; fi
+    echo ""
+    echo "$LAYER:"
+    for ((i = 0; i < COUNT; i++)); do
+      NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" bom.yaml)
+      echo "  - $NAME"
+    done
+  done
+  exit 0
+fi
+
+if [[ "$DO_DRY_RUN" == true ]]; then
+  echo "[assemble] Dry run: Build order based on layer ordering (dependencies → core → extensions → components)"
+  for LAYER in dependencies core extensions components; do
     COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
     if [[ "$COUNT" -eq 0 ]]; then continue; fi
     echo ""
@@ -109,7 +121,7 @@ echo "[assemble] Building product: $PRODUCT"
 START_TIME=$(date +%s)
 SUMMARY_LINES=()
 
-for LAYER in core extensions dependency; do
+for LAYER in core extensions components dependencies; do
   COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
   if [[ "$COUNT" -eq 0 ]]; then continue; fi
 

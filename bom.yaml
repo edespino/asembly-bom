@@ -42,7 +42,7 @@ products:
         - name: pxf
           url: git@github.com:Synx-Data-Labs/hashdata-pxf.git
           branch: upstream
-          configure_flags:
+          configure_flags: []
           steps:
             - clone
             - build
@@ -73,7 +73,7 @@ products:
         - name: pg_jieba
           url: git@github.com:Synx-Data-Labs/hashdata-pg-jieba.git
           branch: upstream
-          configure_flags:
+          configure_flags: []
           steps:
             - clone
             - configure
@@ -104,22 +104,23 @@ products:
         - name: pgpool
           url: git@github.com:Synx-Data-Labs/hashdata-pg-pool.git
           branch: main
-          configure_flags:
+          configure_flags: []
           steps:
             - clone
             - configure
             - build-install
 
+      components:
         - name: pg_filedump
           url: git@github.com:Synx-Data-Labs/hashdata-pg-filedump.git
           branch: upstream
-          configure_flags:
+          configure_flags: []
           steps:
             - clone
             - build-install
             - test
 
-      dependency:
+      dependencies:
         - name: apache-arrow
           url: git@github.com:Synx-Data-Labs/hashdata-arrow.git
           branch: upstream

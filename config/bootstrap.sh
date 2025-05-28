@@ -26,7 +26,5 @@ for TOOL in "${REQUIRED_TOOLS[@]}"; do
         exit 1
         ;;
     esac
-  else
-    echo "[bootstrap] Found: $TOOL"
   fi
 done
