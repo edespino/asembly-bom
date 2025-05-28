@@ -11,6 +11,19 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_NAME="$(basename "$0")"
+
+# Load shared functions
+COMMON_SH="${SCRIPT_DIR}/../lib/common.sh"
+if [ -f "${COMMON_SH}" ]; then
+  # shellcheck disable=SC1090
+  source "${COMMON_SH}"
+else
+  echo "[$SCRIPT_NAME] Missing library: ${COMMON_SH}" >&2
+  exit 1
+fi
+
 # shellcheck disable=SC1091
 [ -f config/env.sh ] && . config/env.sh
 
@@ -18,10 +31,6 @@ NAME="${NAME:-cloudberry}"
 INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local/$NAME}"
 BUILD_DIR="parts/$NAME"
 GP_ENV_PATH="${GP_ENV_PATH:-$INSTALL_PREFIX/greenplum_path.sh}"
-
-section()         { echo "==> $1..."; }
-section_complete(){ echo "✅ $1 complete (duration: $(($(date +%s) - $2))s)"; }
-log()             { printf "[%s] %s\n" "$(date '+%H:%M:%S')" "$*"; }
 
 section "install"
 start_time=$(date +%s)

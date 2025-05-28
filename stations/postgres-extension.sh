@@ -12,6 +12,19 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_NAME="$(basename "$0")"
+
+# Load shared functions
+COMMON_SH="${SCRIPT_DIR}/../lib/common.sh"
+if [ -f "${COMMON_SH}" ]; then
+  # shellcheck disable=SC1090
+  source "${COMMON_SH}"
+else
+  echo "[$SCRIPT_NAME] Missing library: ${COMMON_SH}" >&2
+  exit 1
+fi
+
 # shellcheck disable=SC1091
 [ -f config/env.sh ] && source config/env.sh
 
@@ -21,10 +34,6 @@ USE_PGXS="${USE_PGXS:-}"
 EXT_DIR="parts/$NAME"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLOUDBERRY_DEMO_ENV="$PROJECT_ROOT/parts/cloudberry/gpAux/gpdemo/gpdemo-env.sh"
-
-section()         { echo "==> $1..."; }
-section_complete(){ echo "✅ $1 complete (duration: $(($(date +%s) - $2))s)"; }
-log()             { printf "[%s] %s\n" "$(date '+%H:%M:%S')" "$*"; }
 
 section "build/install PostgreSQL extension: $NAME"
 start_time=$(date +%s)

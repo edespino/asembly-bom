@@ -10,3 +10,15 @@ format_duration() {
     local seconds=$(( total_seconds % 60 ))
     printf "%02d:%02d:%02d\n" "$hours" "$minutes" "$seconds"
 }
+
+section() {
+  echo "==> $1..."
+}
+
+section_complete() {
+  echo "✅ $1 complete (duration: $(format_duration "$(($(date +%s) - $2))"))"
+}
+
+log() {
+  printf "[%s] %s\n" "$(date '+%H:%M:%S')" "$*"
+}
