@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/configure-apache-arrow.sh
-# Purpose  : Configure script for the Apache Arrow component using CMake.
+# File     : stations/configure-apache-orc.sh
+# Purpose  : Configure script for the Apache ORC C++ component using CMake.
 # Inputs   :
 #   - CONFIGURE_FLAGS: CMake flags passed from bom.yaml (mandatory)
 #   - INSTALL_PREFIX: override default install path
+# Notes    :
+#   - Java components are explicitly disabled using -DBUILD_JAVA=OFF
 # --------------------------------------------------------------------
 
 set -euo pipefail
@@ -28,9 +30,9 @@ fi
 [ -f config/env.sh ] && . config/env.sh
 
 # Setup
-NAME="${NAME:-apache-arrow}"
+NAME="${NAME:-apache-orc}"
 INSTALL_PREFIX="${INSTALL_PREFIX:-$HOME/assembly-bom/stage/$NAME}"
-BUILD_DIR="parts/$NAME/cpp/build"
+BUILD_DIR="parts/$NAME/build"
 
 # Prepare build and install directories
 mkdir -p "$BUILD_DIR"
@@ -46,7 +48,7 @@ if [[ -z "${CONFIGURE_FLAGS:-}" ]]; then
   exit 1
 fi
 
-# Final CMake command
+# Final CMake command with Java explicitly disabled
 CMAKE_CMD="cmake .. $CONFIGURE_FLAGS"
 
 log "Running cmake with:"

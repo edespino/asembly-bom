@@ -24,7 +24,7 @@ fi
 # shellcheck disable=SC1091
 [ -f config/env.sh ] && source config/env.sh
 
-NAME="pgpool"
+NAME="${NAME:-pgpool}"
 SRC_DIR="parts/$NAME"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLOUDBERRY_PREFIX="/usr/local/cloudberry"

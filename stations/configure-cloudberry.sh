@@ -29,7 +29,7 @@ fi
 [ -f config/env.sh ] && . config/env.sh
 
 # Setup
-NAME="cloudberry"
+NAME="${NAME:-cloudberry}"
 INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local/cloudberry}"
 DEBUG_EXTENSIONS="${DEBUG_EXTENSIONS:-0}"
 BUILD_DIR="parts/${NAME}"

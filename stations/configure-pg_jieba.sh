@@ -27,7 +27,7 @@ fi
 [ -f config/env.sh ] && source config/env.sh
 
 # Setup
-NAME="pg_jieba"
+NAME="${NAME:-pg_jieba}"
 BUILD_DIR="parts/$NAME/build"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLOUDBERRY_PATH_SH="/usr/local/cloudberry/greenplum_path.sh"

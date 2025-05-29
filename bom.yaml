@@ -154,5 +154,8 @@ products:
         - name: apache-orc
           url: git@github.com:Synx-Data-Labs/hashdata-orc.git
           branch: upstream
+          configure_flags: |
+            -DBUILD_JAVA=OFF
           steps:
             - clone
+            - configure
