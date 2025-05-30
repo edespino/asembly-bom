@@ -32,7 +32,7 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 # shellcheck disable=SC1091
 [ -f config/bootstrap.sh ] && source config/bootstrap.sh
 
-# Validate bom.yaml existence and syntax
+# Validate bom.yaml
 if [[ ! -f bom.yaml ]]; then
   echo "[assemble] Error: bom.yaml not found!"
   exit 1
@@ -46,33 +46,53 @@ if [[ "$#" -eq 0 ]]; then
   set -- --help
 fi
 
-OPTIONS=c:s:hlrd
+OPTIONS=c:s:hlrdGSECD
 LONGOPTS=component:,steps:,help,list,run,dry-run
+
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
 
 ONLY_COMPONENTS=()
 STEP_OVERRIDE=""
-DO_LIST=false
 DO_RUN=false
 DO_DRY_RUN=false
 
+SHOW_LIST=false
+SHOW_GIT=false
+SHOW_STEPS=false
+SHOW_ENV=false
+SHOW_CONFIGURE=false
+
 while true; do
   case "$1" in
-    -c|--component)
-      IFS=',' read -ra ONLY_COMPONENTS <<< "$2"
-      shift 2
-      ;;
+    -c|--component) IFS=',' read -ra ONLY_COMPONENTS <<< "$2"; shift 2 ;;
     -s|--steps) STEP_OVERRIDE="$2"; shift 2 ;;
-    -l|--list) DO_LIST=true; shift ;;
+    -l) SHOW_LIST=true; shift ;;
+    -G) SHOW_GIT=true; shift ;;
+    -S) SHOW_STEPS=true; shift ;;
+    -E) SHOW_ENV=true; shift ;;
+    -C) SHOW_CONFIGURE=true; shift ;;
+    -D)
+      SHOW_LIST=true
+      SHOW_GIT=true
+      SHOW_STEPS=true
+      SHOW_ENV=true
+      SHOW_CONFIGURE=true
+      shift
+      ;;
     -r|--run) DO_RUN=true; shift ;;
     -d|--dry-run) DO_DRY_RUN=true; shift ;;
     -h|--help)
       echo "Usage: $0 [--run] [--list] [--dry-run] [-c <names>] [-s <steps>]"
       echo ""
       echo "  -r, --run            Run BOM steps (must be explicitly provided)"
-      echo "  -l, --list           List all components by layer"
-      echo "  -c, --component      Target one or more components by name (comma-separated)"
+      echo "  -l                   List component names by layer"
+      echo "  -G                   Show Git info (url, branch)"
+      echo "  -S                   Show steps"
+      echo "  -E                   Show environment variables"
+      echo "  -C                   Show configure flags"
+      echo "  -D                   Show all details (-GSEC)"
+      echo "  -c, --component      Filter components by name"
       echo "  -s, --steps          Override steps (comma-separated)"
       echo "  -d, --dry-run        Show build order only"
       echo "  -h, --help           Show this help message"
@@ -85,21 +105,55 @@ done
 
 PRODUCT=$(yq e '.products | keys | .[0]' bom.yaml)
 
-if [[ "$DO_LIST" == true ]]; then
-  echo "[assemble] Components in bom.yaml:"
+# --------------------------------------------------------------------
+# LIST MODE
+# --------------------------------------------------------------------
+if [[ "$SHOW_LIST" == true ]]; then
+  echo "[assemble] Component listing for product: $PRODUCT"
+
   for LAYER in dependencies core extensions components; do
     COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
-    if [[ "$COUNT" -eq 0 ]]; then continue; fi
-    echo ""
-    echo "$LAYER:"
+    [[ "$COUNT" -eq 0 ]] && continue
+
+    MATCHED=()
+
     for ((i = 0; i < COUNT; i++)); do
       NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" bom.yaml)
+
+      if (( ${#ONLY_COMPONENTS[@]} > 0 )); then
+        MATCH=false
+        for COMP in "${ONLY_COMPONENTS[@]}"; do
+          if [[ "$NAME" == "$COMP" ]]; then
+            MATCH=true
+            break
+          fi
+        done
+        $MATCH || continue
+      fi
+
+      MATCHED+=("$i")
+    done
+
+    [[ ${#MATCHED[@]} -eq 0 ]] && continue
+
+    echo ""
+    echo "$LAYER:"
+    for i in "${MATCHED[@]}"; do
+      NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" bom.yaml)
       echo "  - $NAME"
+      [[ "$SHOW_GIT" == true ]] && print_git_info "$LAYER" "$i"
+      [[ "$SHOW_STEPS" == true ]] && print_steps "$LAYER" "$i"
+      [[ "$SHOW_ENV" == true ]] && print_env "$LAYER" "$i"
+      [[ "$SHOW_CONFIGURE" == true ]] && print_configure_flags "$LAYER" "$i"
     done
   done
+
   exit 0
 fi
 
+# --------------------------------------------------------------------
+# DRY-RUN MODE
+# --------------------------------------------------------------------
 if [[ "$DO_DRY_RUN" == true ]]; then
   echo "[assemble] Dry run: Build order based on layer ordering (dependencies → core → extensions → components)"
   for LAYER in dependencies core extensions components; do
@@ -115,6 +169,9 @@ if [[ "$DO_DRY_RUN" == true ]]; then
   exit 0
 fi
 
+# --------------------------------------------------------------------
+# DEFAULT / RUN MODE
+# --------------------------------------------------------------------
 if [[ "$DO_RUN" != true ]]; then
   echo "[assemble] No action taken. Use --run to execute, or --list to inspect."
   echo "Try: $0 --run --component cloudberry --steps build,test"
@@ -125,7 +182,6 @@ echo "[assemble] Building product: $PRODUCT"
 START_TIME=$(date +%s)
 SUMMARY_LINES=()
 
-# Ensure we can write to /usr/local
 sudo chmod a+w /usr/local
 
 for LAYER in dependencies core extensions components; do
@@ -138,14 +194,14 @@ for LAYER in dependencies core extensions components; do
     NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" bom.yaml)
 
     if (( ${#ONLY_COMPONENTS[@]} > 0 )); then
-      skip=true
+      SKIP=true
       for COMP in "${ONLY_COMPONENTS[@]}"; do
         if [[ "$NAME" == "$COMP" ]]; then
-          skip=false
+          SKIP=false
           break
         fi
       done
-      $skip && continue
+      $SKIP && continue
     fi
 
     URL=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].url" bom.yaml)
@@ -201,7 +257,6 @@ for LAYER in dependencies core extensions components; do
     SUMMARY_LINES+=("[✓] $NAME  —  $(format_duration "$COMPONENT_DURATION")")
     SUMMARY_LINES+=("${STEP_TIMINGS[@]}")
   done
-
 done
 
 echo ""
@@ -237,3 +292,4 @@ END {
 }' "$LOG_FILE"
 
 exit 0
+
