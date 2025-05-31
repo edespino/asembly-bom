@@ -46,8 +46,8 @@ if [[ "$#" -eq 0 ]]; then
   set -- --help
 fi
 
-OPTIONS=c:s:hlrdGSECD
-LONGOPTS=component:,steps:,help,list,run,dry-run
+OPTIONS=c:s:hlrdfGSECD
+LONGOPTS=component:,steps:,help,list,run,dry-run,force
 
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
@@ -56,6 +56,7 @@ ONLY_COMPONENTS=()
 STEP_OVERRIDE=""
 DO_RUN=false
 DO_DRY_RUN=false
+FORCE_RESET=false
 
 SHOW_LIST=false
 SHOW_GIT=false
@@ -80,10 +81,11 @@ while true; do
       SHOW_CONFIGURE=true
       shift
       ;;
+    -f|--force) FORCE_RESET=true; shift ;;
     -r|--run) DO_RUN=true; shift ;;
     -d|--dry-run) DO_DRY_RUN=true; shift ;;
     -h|--help)
-      echo "Usage: $0 [--run] [--list] [--dry-run] [-c <names>] [-s <steps>]"
+      echo "Usage: $0 [--run] [--list] [--dry-run] [-c <names>] [-s <steps>] [-f]"
       echo ""
       echo "  -r, --run            Run BOM steps (must be explicitly provided)"
       echo "  -l                   List component names by layer"
@@ -92,6 +94,7 @@ while true; do
       echo "  -E                   Show environment variables"
       echo "  -C                   Show configure flags"
       echo "  -D                   Show all details (-GSEC)"
+      echo "  -f, --force          Prompt to clean parts/<component> before cloning"
       echo "  -c, --component      Filter components by name"
       echo "  -s, --steps          Override steps (comma-separated)"
       echo "  -d, --dry-run        Show build order only"
@@ -104,6 +107,38 @@ while true; do
 done
 
 PRODUCT=$(yq e '.products | keys | .[0]' bom.yaml)
+
+# --------------------------------------------------------------------
+# Force Reset Helper
+# --------------------------------------------------------------------
+force_reset_repo() {
+  local name="$1"
+  local branch="$2"
+  local path="parts/$name"
+
+  if [[ ! -d "$path/.git" ]]; then
+    echo "[force-reset] Skipping: $path is not a Git repository."
+    return
+  fi
+
+  echo ""
+  echo "⚠️  WARNING: This will delete ALL local changes in '$path'"
+  echo "            and reset it to origin/$branch."
+  echo "            This action CANNOT be undone."
+  echo ""
+  read -rp "Type 'yes' to continue: " confirm
+  if [[ "$confirm" != "yes" ]]; then
+    echo "[force-reset] Aborted for $name"
+    return
+  fi
+
+  echo "[force-reset] Cleaning parts/$name ..."
+  git -C "$path" fetch origin
+  git -C "$path" checkout -f "$branch"
+  git -C "$path" reset --hard "origin/$branch"
+  git -C "$path" clean -xfd
+  echo "[force-reset] Complete."
+}
 
 # --------------------------------------------------------------------
 # LIST MODE
@@ -212,6 +247,10 @@ for LAYER in dependencies core extensions components; do
       IFS=',' read -ra STEPS <<< "$STEP_OVERRIDE"
     else
       mapfile -t STEPS < <(yq e ".products.${PRODUCT}.components.${LAYER}[$i].steps[]" bom.yaml)
+    fi
+
+    if [[ "$FORCE_RESET" == true && " ${STEPS[*]} " == *" clone "* ]]; then
+      force_reset_repo "$NAME" "$BRANCH"
     fi
 
     echo "[assemble] Component: $NAME"
