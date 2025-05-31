@@ -156,6 +156,16 @@ products:
           branch: upstream
           configure_flags: |
             -DBUILD_JAVA=OFF
+            -DBUILD_SHARED_LIBS=ON
+            -DWITH_SNAPPY=OFF
+            -DPROTOBUF_HOME=/usr
+            -DPROTOBUF_INCLUDE_DIR=/usr/include
+            -DPROTOBUF_LIBRARY=/usr/lib64/libprotobuf.so
+            -DZLIB_ROOT=/usr
+            -DZLIB_LIBRARY=/usr/lib64/libz.so
+            -DZLIB_INCLUDE_DIR=/usr/include
+            -DCMAKE_CXX_FLAGS=-Wno-error=unused-parameter
+            -DCMAKE_C_FLAGS=-Wno-error=unused-parameter
           steps:
             - clone
             - configure
