@@ -4,10 +4,13 @@ products:
     components:
       core:
         - name: cloudberry
-          url: git@github.com:apache/cloudberry.git
-          branch: main
+          ## url: git@github.com:apache/cloudberry.git
+          ## branch: main
+          url: git@github.com:edespino/cloudberry.git
+          branch: TESTING
           configure_flags: |
             --disable-external-fts
+            --enable-debug-extensions
             --enable-gpcloud
             --enable-gpfdist
             --enable-ic-proxy
