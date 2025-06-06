@@ -55,7 +55,7 @@ log "Sourcing environment from $GP_PATH"
 # shellcheck disable=SC1090
 source "$GP_PATH"
 
-export BLDWRAP_POSTGRES_CONF_ADDONS=""
+export BLDWRAP_POSTGRES_CONF_ADDONS="fsync=off"
 log "BLDWRAP_POSTGRES_CONF_ADDONS set to: $BLDWRAP_POSTGRES_CONF_ADDONS"
 
 log "Running: make create-demo-cluster"
