@@ -44,7 +44,9 @@ fi
 cd "$BUILD_DIR"
 
 # Adjust permissions on prefix
-sudo chmod a+w "$INSTALL_PREFIX"
+if [[ -d "$INSTALL_PREFIX" ]]; then
+    sudo chmod a+w "$INSTALL_PREFIX"
+fi
 
 # Set LD_LIBRARY_PATH if needed
 if [[ -d /opt/xerces-c ]]; then
