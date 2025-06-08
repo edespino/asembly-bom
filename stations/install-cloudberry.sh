@@ -25,14 +25,14 @@ else
 fi
 
 # shellcheck disable=SC1091
-[ -f config/env.sh ] && . config/env.sh
+[ -f config/env.sh ] && source config/env.sh
 
 NAME="${NAME:-cloudberry}"
 INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local/$NAME}"
 BUILD_DIR="parts/$NAME"
 GP_ENV_PATH="${GP_ENV_PATH:-$INSTALL_PREFIX/greenplum_path.sh}"
 
-section "install"
+section "install: $NAME"
 start_time=$(date +%s)
 
 # Ensure source tree exists

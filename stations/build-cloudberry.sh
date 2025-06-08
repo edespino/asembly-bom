@@ -24,7 +24,7 @@ else
 fi
 
 # shellcheck disable=SC1091
-[ -f config/env.sh ] && . config/env.sh
+[ -f config/env.sh ] && source config/env.sh
 
 NAME="${NAME:-cloudberry}"
 INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local/$NAME}"
