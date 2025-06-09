@@ -41,6 +41,31 @@ products:
             - install
             - create-demo-cluster
             - unittest
+            - installcheck
+          test_configs:
+            - name: "default"
+              pgoptions: ""
+              target: "installcheck"
+              description: "Standard installcheck tests"
+            - name: "optimizer-off"
+              pgoptions: "-c optimizer=off"
+              target: "installcheck"
+              description: "Installcheck with optimizer disabled"
+            - name: "pax-storage"
+              pgoptions: "-c optimizer=on -c default_table_access_method=pax"
+              target: "installcheck"
+              directory: "contrib/pax_storage"
+              description: "PAX storage installcheck tests"
+            - name: "pax-regress"
+              pgoptions: "-c optimizer=on -c default_table_access_method=pax"
+              target: "regress_test"
+              directory: "contrib/pax_storage"
+              description: "PAX storage regression tests"
+            - name: "pax-test"
+              pgoptions: "-c optimizer=on -c default_table_access_method=pax"
+              target: "pax-test"
+              directory: "contrib/pax_storage"
+              description: "PAX storage specific tests"
 
       extensions:
         - name: pxf
@@ -113,7 +138,7 @@ products:
           steps:
             - clone
 
-      components:
+      utilities:
         - name: pg_filedump
           url: git@github.com:Synx-Data-Labs/hashdata-pg-filedump.git
           branch: upstream

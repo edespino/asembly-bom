@@ -41,6 +41,13 @@ products:
             --enable-gpfdist
             --with-ldap
           steps: [clone, configure, build, install, test]
+          test_configs:
+            - name: "default"
+              pgoptions: ""
+              target: "installcheck" 
+            - name: "optimizer-off"
+              pgoptions: "-c optimizer=off"
+              target: "installcheck"
 
       extensions:
         - name: cloudberry-pxf
@@ -60,7 +67,7 @@ products:
 2. **Run**:
 
    ```bash
-   ./assemble.sh
+   ./assemble.sh --run
    ```
 
 3. **Customize** behavior with component-specific overrides:
@@ -88,12 +95,43 @@ products:
 
 ---
 
-## 🧪 Running a Single Step
+## 🧪 Common Commands
 
-You can run any step directly, e.g. to build `cloudberry`:
+### Build specific components
+```bash
+# Build entire product
+./assemble.sh --run
+
+# Build specific component
+./assemble.sh --run --component cloudberry
+
+# Build with custom steps
+./assemble.sh --run --component cloudberry --steps configure,build,install
+
+# Show component list and build order
+./assemble.sh --list
+```
+
+### Test configurations
+```bash
+# Run default installcheck tests
+./assemble.sh --run --component cloudberry --steps installcheck
+
+# Run with optimizer disabled
+./assemble.sh --run --component cloudberry --steps installcheck --test-config optimizer-off
+
+# Run PAX storage tests
+./assemble.sh --run --component cloudberry --steps installcheck --test-config pax-storage
+```
+
+### Running individual steps
+You can run any step directly:
 
 ```bash
 NAME=cloudberry INSTALL_PREFIX=/usr/local ./stations/build-cloudberry.sh
+
+# Run with specific test configuration
+TEST_CONFIG_NAME=optimizer-off ./stations/installcheck-cloudberry.sh
 ```
 
 ---

@@ -46,14 +46,15 @@ if [[ "$#" -eq 0 ]]; then
   set -- --help
 fi
 
-OPTIONS=c:s:hlrdfGSECD
-LONGOPTS=component:,steps:,help,list,run,dry-run,force
+OPTIONS=c:s:t:hlrdfGSECD
+LONGOPTS=component:,steps:,test-config:,help,list,run,dry-run,force
 
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
 
 ONLY_COMPONENTS=()
 STEP_OVERRIDE=""
+TEST_CONFIG_OVERRIDE=""
 DO_RUN=false
 DO_DRY_RUN=false
 FORCE_RESET=false
@@ -68,6 +69,7 @@ while true; do
   case "$1" in
     -c|--component) IFS=',' read -ra ONLY_COMPONENTS <<< "$2"; shift 2 ;;
     -s|--steps) STEP_OVERRIDE="$2"; shift 2 ;;
+    -t|--test-config) TEST_CONFIG_OVERRIDE="$2"; shift 2 ;;
     -l) SHOW_LIST=true; shift ;;
     -G) SHOW_GIT=true; shift ;;
     -S) SHOW_STEPS=true; shift ;;
@@ -97,6 +99,7 @@ while true; do
       echo "  -f, --force          Prompt to clean parts/<component> before cloning"
       echo "  -c, --component      Filter components by name"
       echo "  -s, --steps          Override steps (comma-separated)"
+      echo "  -t, --test-config    Set test configuration for components"
       echo "  -d, --dry-run        Show build order only"
       echo "  -h, --help           Show this help message"
       exit 0
@@ -263,6 +266,12 @@ for LAYER in dependencies core extensions components; do
       export "$KEY"="$VALUE"
       echo "[assemble]     ENV: $KEY=$VALUE"
     done
+
+    # Export test configuration if provided
+    if [[ -n "$TEST_CONFIG_OVERRIDE" ]]; then
+      export TEST_CONFIG_NAME="$TEST_CONFIG_OVERRIDE"
+      echo "[assemble]     ENV: TEST_CONFIG_NAME=$TEST_CONFIG_OVERRIDE"
+    fi
 
     STEP_TIMINGS=()
     COMPONENT_START=$(date +%s)
