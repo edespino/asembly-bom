@@ -46,7 +46,7 @@ if [[ "$#" -eq 0 ]]; then
   set -- --help
 fi
 
-OPTIONS=c:s:t:hlrdfGSECD
+OPTIONS=c:s:t:hlrdfGSECDT
 LONGOPTS=component:,steps:,test-config:,help,list,run,dry-run,force
 
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
@@ -64,6 +64,7 @@ SHOW_GIT=false
 SHOW_STEPS=false
 SHOW_ENV=false
 SHOW_CONFIGURE=false
+SHOW_TEST_CONFIGS=false
 
 while true; do
   case "$1" in
@@ -75,12 +76,14 @@ while true; do
     -S) SHOW_STEPS=true; shift ;;
     -E) SHOW_ENV=true; shift ;;
     -C) SHOW_CONFIGURE=true; shift ;;
+    -T) SHOW_TEST_CONFIGS=true; shift ;;
     -D)
       SHOW_LIST=true
       SHOW_GIT=true
       SHOW_STEPS=true
       SHOW_ENV=true
       SHOW_CONFIGURE=true
+      SHOW_TEST_CONFIGS=true
       shift
       ;;
     -f|--force) FORCE_RESET=true; shift ;;
@@ -95,7 +98,8 @@ while true; do
       echo "  -S                   Show steps"
       echo "  -E                   Show environment variables"
       echo "  -C                   Show configure flags"
-      echo "  -D                   Show all details (-GSEC)"
+      echo "  -T                   Show test configurations"
+      echo "  -D                   Show all details (-GSECT)"
       echo "  -f, --force          Prompt to clean parts/<component> before cloning"
       echo "  -c, --component      Filter components by name"
       echo "  -s, --steps          Override steps (comma-separated)"
@@ -183,6 +187,7 @@ if [[ "$SHOW_LIST" == true ]]; then
       [[ "$SHOW_STEPS" == true ]] && print_steps "$LAYER" "$i"
       [[ "$SHOW_ENV" == true ]] && print_env "$LAYER" "$i"
       [[ "$SHOW_CONFIGURE" == true ]] && print_configure_flags "$LAYER" "$i"
+      [[ "$SHOW_TEST_CONFIGS" == true ]] && print_test_configs "$LAYER" "$i"
     done
   done
 

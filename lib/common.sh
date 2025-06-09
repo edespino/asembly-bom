@@ -83,3 +83,28 @@ print_configure_flags() {
     echo "$config" | sed 's/^/        /'
   fi
 }
+
+print_test_configs() {
+  local layer="$1" idx="$2"
+  echo "      Test Configs:"
+  local count
+  count=$(yq e ".products.${PRODUCT}.components.${layer}[${idx}].test_configs | length" bom.yaml 2>/dev/null || echo 0)
+  if [[ "$count" -eq 0 ]]; then
+    echo "        (none)"
+  else
+    for ((i = 0; i < count; i++)); do
+      local name pgoptions target directory description
+      name=$(yq e ".products.${PRODUCT}.components.${layer}[${idx}].test_configs[${i}].name" bom.yaml 2>/dev/null || echo "")
+      pgoptions=$(yq e ".products.${PRODUCT}.components.${layer}[${idx}].test_configs[${i}].pgoptions" bom.yaml 2>/dev/null || echo "")
+      target=$(yq e ".products.${PRODUCT}.components.${layer}[${idx}].test_configs[${i}].target" bom.yaml 2>/dev/null || echo "")
+      directory=$(yq e ".products.${PRODUCT}.components.${layer}[${idx}].test_configs[${i}].directory" bom.yaml 2>/dev/null || echo "")
+      description=$(yq e ".products.${PRODUCT}.components.${layer}[${idx}].test_configs[${i}].description" bom.yaml 2>/dev/null || echo "")
+      
+      echo "        - name: $name"
+      [[ -n "$description" && "$description" != "null" ]] && echo "          description: $description"
+      [[ -n "$target" && "$target" != "null" ]] && echo "          target: $target"
+      [[ -n "$directory" && "$directory" != "null" ]] && echo "          directory: $directory"
+      [[ -n "$pgoptions" && "$pgoptions" != "null" ]] && echo "          pgoptions: $pgoptions"
+    done
+  fi
+}
