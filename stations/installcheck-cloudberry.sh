@@ -97,6 +97,24 @@ TEST_TARGET=$(echo "$TEST_TARGET" | sed 's/^"//;s/"$//;s/^null$/installcheck/')
 TEST_DIRECTORY=$(echo "$TEST_DIRECTORY" | sed 's/^"//;s/"$//;s/^null$//')
 TEST_DESCRIPTION=$(echo "$TEST_DESCRIPTION" | sed 's/^"//;s/"$//;s/^null$//')
 
+# Validate test configuration exists
+if [[ -z "$TEST_TARGET" || "$TEST_TARGET" == "installcheck" && "$TEST_CONFIG_NAME" != "default" ]]; then
+  # Check if the config name exists in bom.yaml
+  CONFIG_EXISTS=$(yq eval ".products.cloudberry.components.core[] | select(.name == \"$NAME\") | .test_configs[] | select(.name == \"$TEST_CONFIG_NAME\") | .name" "$BOM_FILE" 2>/dev/null || echo "")
+  if [[ -z "$CONFIG_EXISTS" ]]; then
+    echo "[installcheck-cloudberry] ERROR: Test configuration '$TEST_CONFIG_NAME' not found"
+    echo "[installcheck-cloudberry] Available configurations:"
+    yq eval ".products.cloudberry.components.core[] | select(.name == \"$NAME\") | .test_configs[].name" "$BOM_FILE" 2>/dev/null | sed 's/^/  - /' || echo "  (none)"
+    exit 1
+  fi
+fi
+
+# Ensure we have a valid target
+if [[ -z "$TEST_TARGET" ]]; then
+  TEST_TARGET="installcheck"
+  log "WARNING: No target specified, defaulting to 'installcheck'"
+fi
+
 # Determine test directory
 if [[ -n "$TEST_DIRECTORY" ]]; then
   FULL_TEST_DIR="$HOME/assembly-bom/parts/$NAME/$TEST_DIRECTORY"
